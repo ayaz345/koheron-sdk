@@ -48,7 +48,7 @@ if __name__ == "__main__":
     driver.set_reference_clock(0) # External
     time.sleep(5)
 
-    print('ADC size = {}'.format(driver.adc_size))
+    print(f'ADC size = {driver.adc_size}')
 
     clk_200MHz = {'name': '200 MHz', 'idx': 0, 'fs': 200E6}
     clk_250MHz = {'name': '250 MHz', 'idx': 1, 'fs': 250E6}

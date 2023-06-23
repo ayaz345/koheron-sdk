@@ -16,7 +16,7 @@ host = os.getenv('HOST', '192.168.1.50')
 client = connect(host, 'adc-bram', restart=False)
 driver = AdcBram(client)
 
-print('ADC size = {}'.format(driver.adc_size))
+print(f'ADC size = {driver.adc_size}')
 
 driver.set_reference_clock(0) # External
 time.sleep(5)

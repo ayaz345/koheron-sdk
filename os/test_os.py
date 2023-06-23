@@ -24,7 +24,10 @@ class TestSystem(unittest.TestCase):
         lines = stdout.readlines()
         # pprint.pprint(lines)
         self.assertTrue(lines[0].startswith("eth0"))
-        self.assertEqual(lines[1], "          inet addr:{}  Bcast:192.168.1.255  Mask:255.255.255.0\n".format(host))
+        self.assertEqual(
+            lines[1],
+            f"          inet addr:{host}  Bcast:192.168.1.255  Mask:255.255.255.0\n",
+        )
 
     def test_ethernet_speed(self):
         stdin, stdout, sterr = self.ssh.exec_command('dmesg | grep eth0 | grep up')
@@ -81,7 +84,9 @@ class TestKoheronServer(unittest.TestCase):
         stdin, stdout, sterr = self.ssh.exec_command('journalctl -u koheron-server | grep eth0')
         lines = stdout.readlines()
         # pprint.pprint(lines)
-        self.assertEqual(parse_systemctl_line(lines[0]), "Interface eth0 found: {}".format(host))
+        self.assertEqual(
+            parse_systemctl_line(lines[0]), f"Interface eth0 found: {host}"
+        )
 
 class TestUwsgi(unittest.TestCase):
     def __init__(self, name, ssh):
@@ -97,10 +102,10 @@ class TestUwsgi(unittest.TestCase):
         self.assertTrue(lines[2].startswith("   Active: active (running)"))
 
     def test_intruments_details(self):
-        with urllib.request.urlopen("http://{}/api/instruments/details".format(host)) as url:
+        with urllib.request.urlopen(f"http://{host}/api/instruments/details") as url:
             inst_details = json.loads(url.read())
             # pprint.pprint(inst_details)
-    
+
             self.assertTrue("instruments" in inst_details)
             self.assertGreaterEqual(len(inst_details["instruments"]), 1)
             inst0 = inst_details["instruments"][0]
@@ -154,7 +159,7 @@ class TestNginx(unittest.TestCase):
         self.assertTrue("version.json\n" in lines)
 
     def test_koheron_version(self):
-        with urllib.request.urlopen("http://{}/koheron/version.json".format(host)) as url:
+        with urllib.request.urlopen(f"http://{host}/koheron/version.json") as url:
             version_dict = json.loads(url.read())
             self.assertTrue("version" in version_dict)
             self.assertEqual(len(version_dict["version"].split('.')), 3)

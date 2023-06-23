@@ -5,6 +5,7 @@
 Measure the crosstalk between ADC0 and ADC1
 '''
 
+
 import numpy as np
 import os
 import time
@@ -41,7 +42,7 @@ ax.set_ylabel('Crosstalk (dB)')
 
 for j in range(2):
 
-	input("Connect DAC0 to ADC"+str(j))
+	input(f"Connect DAC0 to ADC{str(j)}")
 
 	for i, freq in enumerate(freqs):
 	    n = np.uint32(freq / fs * n_pts)
@@ -59,7 +60,7 @@ for j in range(2):
 
 	    print(freq, crosstalk[j,i])
 
-	ax.plot(freqs*1e-6, crosstalk[j,:], label='ADC{} to ADC{}'.format(j%2, (j+1)%2))
+	ax.plot(freqs*1e-6, crosstalk[j,:], label=f'ADC{j % 2} to ADC{(j + 1) % 2}')
 
 
 

@@ -30,7 +30,7 @@ def parse_brackets(string):
     ''' ex: 'pwm', '4' = parse_brackets('pwm[4]') '''
     start, end = map(lambda char : string.find(char), ('[', ']'))
     if start >= 0 and end >= 0:
-        return string[0 : start], string[start + 1 : end]
+        return string[:start], string[start + 1 : end]
     else:
         return string, '1'
 
@@ -51,7 +51,7 @@ def build_memory(memory, parameters):
         assert (address['n_blocks'] > 0)
 
         # Protection
-        if not 'protection' in address:
+        if 'protection' not in address:
             address['prot_flag'] = 'PROT_READ|PROT_WRITE'
         elif address['protection'] == 'read':
             address['prot_flag'] = 'PROT_READ'
@@ -69,9 +69,7 @@ def build_registers(registers, parameters):
         if parameter == 1:
             new_registers.append(register)
         else:
-            for i in range(parameter):
-                new_registers.append(register+str(i))
-
+            new_registers.extend(register+str(i) for i in range(parameter))
     registers = new_registers
     return registers
 
@@ -85,8 +83,7 @@ def append_memory_to_config(config):
     return config
 
 def build_json(dict):
-    dict_json = json.dumps(dict, separators=(',', ':')).replace('"', '\\"')
-    return dict_json
+    return json.dumps(dict, separators=(',', ':')).replace('"', '\\"')
 
 def dump_if_changed(filename, new_dict):
     changed = False
@@ -114,7 +111,7 @@ def get_renderer():
     )
 
     def quote(list_):
-        return ['"%s"' % element for element in list_]
+        return [f'"{element}"' for element in list_]
 
     def remove_extension(filename):
         toks = filename.split('.')

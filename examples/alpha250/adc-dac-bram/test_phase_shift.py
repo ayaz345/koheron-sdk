@@ -44,8 +44,8 @@ if __name__ == "__main__":
     client = connect(host, 'adc-dac-bram', restart=True)
     driver = AdcDacBram(client)
 
-    print('DAC size = {}'.format(driver.dac_size))
-    print('ADC size = {}'.format(driver.adc_size))
+    print(f'DAC size = {driver.dac_size}')
+    print(f'ADC size = {driver.adc_size}')
     set_dac_modulation()
 
     clk_200MHz = {'name': '200 MHz', 'idx': 0, 'fs': 200E6}

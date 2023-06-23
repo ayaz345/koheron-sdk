@@ -24,12 +24,17 @@ class Keysight33600A:
         self.channel = channel
 
     def set_sinus(self, freq, v_pp, offset):
-        self.inst.write('SOUR' + str(int(self.channel)) + ':APPLy:SIN ' + str(freq / 1E3) + ' KHZ, '
-        	            + str(v_pp) + ' VPP, '
-        	            + str(offset) + ' V\n')
+        self.inst.write(
+            (
+                f'SOUR{int(self.channel)}:APPLy:SIN {str(freq / 1000.0)} KHZ, {str(v_pp)} VPP, {str(offset)}'
+                + ' V\n'
+            )
+        )
 
     def set_dc_offset(self, offset):
-        self.inst.write('SOUR' + str(int(self.channel)) + ':APPLy:DC DEF, DEF, ' + str(offset) + ' V\n')
+        self.inst.write(
+            f'SOUR{int(self.channel)}:APPLy:DC DEF, DEF, {str(offset)}' + ' V\n'
+        )
 
 def calibrate_transfer_function(gene, driver):
     n_pts = driver.n_pts

@@ -61,7 +61,9 @@ if __name__=="__main__":
     t = np.arange(driver.n) / fs
     chirp = (fmax-fmin)/(t[-1]-t[0])
 
-    print("Set DAC waveform (chirp between {} and {} MHz)".format(1e-6*fmin, 1e-6*fmax))
+    print(
+        f"Set DAC waveform (chirp between {1e-06 * fmin} and {1e-06 * fmax} MHz)"
+    )
     driver.dac = 0.9 * np.cos(2*np.pi * (fmin + chirp * t) * t)
     driver.set_dac()
 
@@ -69,14 +71,14 @@ if __name__=="__main__":
     n_avg = 10
     adc = np.zeros(driver.n)
 
-    print("Get ADC{} data ({} points)".format(adc_channel, driver.n))
+    print(f"Get ADC{adc_channel} data ({driver.n} points)")
     driver.start_dma()
     driver.get_adc()
     driver.stop_dma()
 
     n_pts = 1000000
-    print("Plot first {} points".format(n_pts))
-    plt.plot(1e6 * t[0:n_pts], driver.adc[0:n_pts])
+    print(f"Plot first {n_pts} points")
+    plt.plot(1e6 * t[:n_pts], driver.adc[:n_pts])
     plt.ylim((-2**15, 2**15))
     plt.xlabel('Time (us)')
     plt.ylabel('ADC Raw data')

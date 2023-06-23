@@ -20,11 +20,7 @@ channel = 0
 
 driver.range_select(channel, input_range)
 
-if input_range == 0:
-    input_span = 2.048 # Vpp
-else:
-    input_span = 8.192 # Vpp
-
+input_span = 2.048 if input_range == 0 else 8.192
 driver.get_adc(channel)
 data = driver.adc[channel,:]
 
@@ -33,8 +29,8 @@ plt.show()
 
 data_volts = data * input_span / 2**18
 
-print("Transition noise = {} LSBrms".format(np.std(data)))
-print("Input noise = {} uVrms".format(1E6 * np.std(data_volts)))
+print(f"Transition noise = {np.std(data)} LSBrms")
+print(f"Input noise = {1000000.0 * np.std(data_volts)} uVrms")
 
 ax = plt.subplot(111)
 ax.hist(data, bins='auto')

@@ -21,8 +21,8 @@ driver.range_select(1, 0)
 
 # driver.set_testpat()
 
-print('DAC size = {}'.format(driver.dac_size))
-print('ADC size = {}'.format(driver.adc_size))
+print(f'DAC size = {driver.dac_size}')
+print(f'ADC size = {driver.adc_size}')
 
 clk_15MHz = {'idx': 0, 'fs': 15E6}
 # driver.set_sampling_frequency(clk_15MHz['idx'])
@@ -43,7 +43,7 @@ t_dac = np.arange(ndac) / fs_dac
 f_dac = clk_15MHz['fs'] / 50
 f_dac = np.round(f_dac / fs_dac * ndac) * fs_dac / ndac
 f_mod = f_dac / (fs_dac / clk_15MHz['fs'])
-print("fmod = {} kHz".format(f_mod / 1E3))
+print(f"fmod = {f_mod / 1000.0} kHz")
 driver.dac[0, :] = amp_mod * np.sin(2.0 * np.pi * f_dac * t_dac)
 driver.dac[1, :] = amp_mod * np.sin(2.0 * np.pi * f_dac * t_dac)
 # driver.dac[0, 0:driver.dac_size // 2] = 0.0

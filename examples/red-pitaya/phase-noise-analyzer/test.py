@@ -40,7 +40,12 @@ y = np.ones(n)
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-li, = ax.semilogx(np.fft.fftshift(ffft[1:n/2+1]), y[1:n/2+1], label="{} MHz carrier".format(freq*1e-6), linewidth=2)
+(li,) = ax.semilogx(
+    np.fft.fftshift(ffft[1 : n / 2 + 1]),
+    y[1 : n / 2 + 1],
+    label=f"{freq * 1e-06} MHz carrier",
+    linewidth=2,
+)
 
 ax.set_xlim((10, 1e6))
 ax.set_ylim((-170, 0))

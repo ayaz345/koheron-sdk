@@ -49,7 +49,9 @@ print(n, fs)
 fig = plt.figure()
 ax = fig.add_subplot(111)
 f = np.arange(n) * fs / n / 2
-li, = ax.semilogx(f, np.ones(n), label="{} MHz carrier".format(freq*1e-6), linewidth=2)
+(li,) = ax.semilogx(
+    f, np.ones(n), label=f"{freq * 1e-06} MHz carrier", linewidth=2
+)
 
 ax.set_xlim((100, 2e6))
 ax.set_ylim((-200, 0))

@@ -17,12 +17,15 @@ class Agilent33220A:
     def __init__(self, ip):
         import visa
         rm = visa.ResourceManager('@py')
-        self.inst = rm.open_resource('TCPIP0::' + ip + '::INSTR')
+        self.inst = rm.open_resource(f'TCPIP0::{ip}::INSTR')
 
     def set_sinus(self, freq, v_pp, offset):
-        self.inst.write('APPL:SIN ' + str(freq / 1E3) + ' KHZ, '
-        	            + str(v_pp / 2) + ' VPP, '
-        	            + str(offset) + ' V\n')
+        self.inst.write(
+            (
+                f'APPL:SIN {str(freq / 1000.0)} KHZ, {str(v_pp / 2)} VPP, {str(offset)}'
+                + ' V\n'
+            )
+        )
 
 
 gene = Agilent33220A('192.168.1.22')
@@ -46,7 +49,7 @@ window = 0.5 * (1 + np.cos(2*np.pi*np.arange(n)/n))
 for i, idx in enumerate(fidx):
     gene.set_sinus(freqs[i], 0.5, 0)
 
-    for j in range(6):
+    for _ in range(6):
         data = driver.read_adc()
 
     data = np.double(driver.read_adc())/2**31

@@ -24,4 +24,4 @@ if __name__=="__main__":
     # driver.set_dac_0(0)
     # driver.set_dac_1(1000)
     adc1, adc2 = driver.get_adc()
-    print('adc1 = {}, adc2 = {}'.format(adc1, adc2))
+    print(f'adc1 = {adc1}, adc2 = {adc2}')

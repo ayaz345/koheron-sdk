@@ -18,16 +18,15 @@ ConnectionError = requests.ConnectionError
 # --------------------------------------------
 
 def instrument_status(host):
-    status = requests.get('http://{}/api/instruments'.format(host)).json()
-    return status
+    return requests.get(f'http://{host}/api/instruments').json()
 
 def upload_instrument(host, filename, run=False):
     with open(filename, 'rb') as fileobj:
-        url = 'http://{}/api/instruments/upload'.format(host)
+        url = f'http://{host}/api/instruments/upload'
         r = requests.post(url, files={filename: fileobj})
     if run:
         name = get_name_version(filename)
-        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
+        r = requests.get(f'http://{host}/api/instruments/run/{name}')
 
 def run_instrument(host, name=None, restart=False):
     instrument_running = False
@@ -40,25 +39,23 @@ def run_instrument(host, name=None, restart=False):
         name = live_instrument
         instrument_running = True
 
-    if not instrument_running: # Find the instrument in the local store:
+    if not instrument_running:
         if name in instruments:
             instrument_in_store = True
         else:
-            raise ValueError('Did not found instrument {}'.format(name))
+            raise ValueError(f'Did not found instrument {name}')
 
     if instrument_in_store or (instrument_running and restart):
-        r = requests.get('http://{}/api/instruments/run/{}'.format(host, name))
+        r = requests.get(f'http://{host}/api/instruments/run/{name}')
 
 def connect(host, *args, **kwargs):
     run_instrument(host, *args, **kwargs)
-    client = KoheronClient(host)
-    return client
+    return KoheronClient(host)
 
 def load_instrument(host, instrument='blink', always_restart=False):
     print('Warning: load_instrument() is deprecated, use connect() instead')
     run_instrument(host, instrument, restart=always_restart)
-    client = KoheronClient(host)
-    return client
+    return KoheronClient(host)
 
 # --------------------------------------------
 # Command decorator
@@ -103,8 +100,9 @@ def append(buff, value, size):
 
 def append_vector(buff, array, array_params):
     if cpp_to_np_types[array_params['T']] != array.dtype:
-        raise TypeError('Invalid array type. Expected {} but received {}.'
-                        .format(cpp_to_np_types[array_params['T']], array.dtype))
+        raise TypeError(
+            f"Invalid array type. Expected {cpp_to_np_types[array_params['T']]} but received {array.dtype}."
+        )
 
     arr_bytes = bytearray(array)
     append(buff, len(arr_bytes), 4)
@@ -112,12 +110,14 @@ def append_vector(buff, array, array_params):
 
 def append_array(buff, array, array_params):
     if int(array_params['N']) != len(array):
-        raise ValueError('Invalid array length. Expected {} but received {}.'
-                         .format(array_params['N'], len(array)))
+        raise ValueError(
+            f"Invalid array length. Expected {array_params['N']} but received {len(array)}."
+        )
 
     if cpp_to_np_types[array_params['T']] != array.dtype:
-        raise TypeError('Invalid array type. Expected {} but received {}.'
-                        .format(cpp_to_np_types[array_params['T']], array.dtype))
+        raise TypeError(
+            f"Invalid array type. Expected {cpp_to_np_types[array_params['T']]} but received {array.dtype}."
+        )
 
     buff += bytearray(array)
 
@@ -132,8 +132,9 @@ def build_payload(cmd_args, args):
     payload = bytearray()
 
     if len(cmd_args) != len(args):
-        raise ValueError('Invalid number of arguments. Expected {} but received {}.'
-                         .format(len(cmd_args), len(args)))
+        raise ValueError(
+            f'Invalid number of arguments. Expected {len(cmd_args)} but received {len(args)}.'
+        )
 
     if len(cmd_args) == 0:
         return payload
@@ -170,15 +171,15 @@ def build_payload(cmd_args, args):
 
 def is_std_array(_type):
     base_type = _type.split('<')[0].strip()
-    return (base_type == 'std::array') or (base_type == 'const std::array')
+    return base_type in ['std::array', 'const std::array']
 
 def is_std_vector(_type):
     base_type = _type.split('<')[0].strip()
-    return (base_type == 'std::vector') or (base_type == 'const std::vector')
+    return base_type in ['std::vector', 'const std::vector']
 
 def is_std_string(_type):
     base_type = _type.split('&')[0].strip()
-    return (base_type == 'std::string') or (base_type == 'const std::string')
+    return base_type in ['std::string', 'const std::string']
 
 def is_std_tuple(_type):
     return _type.split('<')[0].strip() == 'std::tuple'
@@ -244,14 +245,14 @@ class KoheronClient:
                 self.sock.connect((host, port))
                 self.is_connected = True
             except BaseException as e:
-                raise ConnectionError('Failed to connect to {}:{} : {}'.format(host, port, e))
+                raise ConnectionError(f'Failed to connect to {host}:{port} : {e}')
         elif unixsock != '':
             try:
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.sock.connect(unixsock)
                 self.is_connected = True
             except BaseException as e:
-                raise ConnectionError('Failed to connect to unix socket address ' + unixsock)
+                raise ConnectionError(f'Failed to connect to unix socket address {unixsock}')
         else:
             raise ValueError('Unknown socket type')
 
@@ -267,9 +268,10 @@ class KoheronClient:
         server_version = self.recv_string(check_type=False)
         server_version_ = server_version.split('.')
         client_version_ = __version__.split('.')
-        if  (client_version_[0] != server_version_[0]) or (client_version_[1] < server_version_[1]):
-            print('Warning: your client version {} is incompatible with the server version {}'
-                   .format(__version__, server_version))
+        if (client_version_[0] != server_version_[0]) or (client_version_[1] < server_version_[1]):
+            print(
+                f'Warning: your client version {__version__} is incompatible with the server version {server_version}'
+            )
             print('Upgrade your client with "pip install --upgrade koheron"')
 
     def load_devices(self):
@@ -309,34 +311,48 @@ class KoheronClient:
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         ret_type = ret_type.split('&')[0].strip()
         if ret_type not in expected_types:
-            raise TypeError('{}::{} returns a {}.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError(
+                f'{self.last_device_called}::{self.last_cmd_called} returns a {ret_type}.'
+            )
 
     def check_ret_array(self, dtype, arr_len):
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_array(ret_type):
-            raise TypeError('Expect call to recv_array [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError(
+                f'Expect call to recv_array [{self.last_device_called}::{self.last_cmd_called} returns a {ret_type}].'
+            )
         params = get_std_array_params(ret_type)
         if dtype != cpp_to_np_types[params['T']]:
-            raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, params['T']))
+            raise TypeError(
+                f"{self.last_device_called}::{self.last_cmd_called} expects elements of type {params['T']}."
+            )
         if arr_len != int(params['N']):
-            raise ValueError('{}::{} expects {} elements.'.format(self.last_device_called, self.last_cmd_called, params['N']))
+            raise ValueError(
+                f"{self.last_device_called}::{self.last_cmd_called} expects {params['N']} elements."
+            )
 
     def check_ret_vector(self, dtype):
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_vector(ret_type):
-            raise TypeError('Expect call to recv_vector [{}::{} returns a {}].'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError(
+                f'Expect call to recv_vector [{self.last_device_called}::{self.last_cmd_called} returns a {ret_type}].'
+            )
         vect_type = get_std_vector_params(ret_type)['T']
         if dtype != cpp_to_np_types[vect_type]:
-            raise TypeError('{}::{} expects elements of type {}.'.format(self.last_device_called, self.last_cmd_called, vect_type))
+            raise TypeError(
+                f'{self.last_device_called}::{self.last_cmd_called} expects elements of type {vect_type}.'
+            )
 
     # TODO add types check
     def check_ret_tuple(self):
         device_id = self.devices_idx[self.last_device_called]
         ret_type = self.cmds_ret_types_list[device_id][self.last_cmd_called]
         if not is_std_tuple(ret_type):
-            raise TypeError('{}::{} returns a {} not a std::tuple.'.format(self.last_device_called, self.last_cmd_called, ret_type))
+            raise TypeError(
+                f'{self.last_device_called}::{self.last_cmd_called} returns a {ret_type} not a std::tuple.'
+            )
 
     # -------------------------------------------------------
     # Send/Receive
@@ -369,12 +385,9 @@ class KoheronClient:
         return self.recv_all(length)
 
     def recv(self, fmt='I'):
-        fmt_ = '>IHH' + fmt
+        fmt_ = f'>IHH{fmt}'
         t = struct.unpack(fmt_, self.recv_all(struct.calcsize(fmt_)))[3:]
-        if len(t) == 1:
-            return t[0]
-        else:
-            return t
+        return t[0] if len(t) == 1 else t
 
     def recv_uint32(self):
         self.check_ret_type(['uint32_t', 'unsigned int'])

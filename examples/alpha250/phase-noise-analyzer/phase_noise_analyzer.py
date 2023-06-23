@@ -45,7 +45,7 @@ class PhaseNoiseAnalyzer(object):
 
         for i in range(navg):
             if verbose:
-                print("Acquiring sample {}/{}".format(i + 1, navg))
+                print(f"Acquiring sample {i + 1}/{navg}")
 
             phase = self.get_phase()
             psd += 2.0 * np.abs(np.fft.rfft(win * (phase - np.mean(phase)))) ** 2

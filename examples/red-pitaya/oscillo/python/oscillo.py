@@ -16,8 +16,8 @@ class Oscillo(object):
         self.dac = np.zeros((2, self.wfm_size))
 
         self.adc = np.zeros((2, self.wfm_size))
-        self.spectrum = np.zeros((2, int(self.wfm_size / 2)))
-        self.avg_spectrum = np.zeros((2, int(self.wfm_size / 2)))
+        self.spectrum = np.zeros((2, self.wfm_size // 2))
+        self.avg_spectrum = np.zeros((2, self.wfm_size // 2))
 
     @command()
     def set_dac_periods(self, period0, period1):
@@ -47,13 +47,11 @@ class Oscillo(object):
     @command()
     def get_num_average(self, channel):
         ''' Get the number of averages corresponding to the last acquisition. '''
-        num_average = self.client.recv_uint32()
-        return num_average
+        return self.client.recv_uint32()
 
     @command()
     def get_decimated_data(self, decim_factor, index_low, index_high):
-        decimated_data = self.client.recv_vector(dtype='float32')
-        return decimated_data
+        return self.client.recv_vector(dtype='float32')
 
     def get_adc(self):
         self.adc = np.reshape(self.get_decimated_data(1, 0, self.wfm_size), (2, self.wfm_size))
@@ -64,7 +62,7 @@ class Oscillo(object):
 
     def get_avg_spectrum(self, n_avg=1):
         self.avg_spectrum = np.zeros((2, int(self.wfm_size / 2)))
-        for i in range(n_avg):
+        for _ in range(n_avg):
             self.get_adc()
             fft_adc = np.abs(np.fft.fft(self.adc, axis=1))
             self.avg_spectrum += fft_adc[:, 0:int(self.wfm_size / 2)]

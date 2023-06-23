@@ -25,11 +25,7 @@ input_range = 1
 driver.range_select(0, input_range)
 driver.range_select(1, input_range)
 
-if input_range == 0:
-    input_span = 2.048 # Vpp
-else:
-    input_span = 8.192 # Vpp
-
+input_span = 2.048 if input_range == 0 else 8.192
 adc_channel = 0
 driver.select_adc_channel(adc_channel)
 
@@ -40,14 +36,14 @@ driver.select_adc_channel(adc_channel)
 fs_adc = 15E6
 adc = np.zeros(driver.n)
 
-print("Get ADC{} data ({} points)".format(adc_channel, driver.n))
+print(f"Get ADC{adc_channel} data ({driver.n} points)")
 driver.start_dma()
 driver.get_adc()
 driver.stop_dma()
 
 n_pts = driver.n // 2
 t_adc = np.arange(n_pts) / fs_adc
-print("Plot first {} points".format(n_pts))
+print(f"Plot first {n_pts} points")
 plt.plot(1E6 * t_adc, driver.adc)
 plt.ylim((-2**17, 2**17))
 plt.xlabel('Time (us)')
@@ -64,7 +60,7 @@ psd = np.zeros((n_pts // 2 + 1))
 # win = np.hanning(n)
 win = np.ones(n_pts)
 
-for i in range(n_avg):
+for _ in range(n_avg):
     driver.start_dma()
     driver.get_adc()
     driver.stop_dma()
@@ -81,7 +77,7 @@ psd /= n_avg
 lpsd = np.sqrt(psd)
 
 ax = plt.subplot(111)
-ax.loglog(f, lpsd * 1E9, label='ADC{}'.format(adc_channel))
+ax.loglog(f, lpsd * 1E9, label=f'ADC{adc_channel}')
 ax.grid(True, which='major', linestyle='-', linewidth=1.5, color='0.35')
 ax.grid(True, which='minor', linestyle='-', color='0.35')
 ax.set_axisbelow(True)

@@ -23,11 +23,7 @@ if __name__=="__main__":
     driver.range_select(0, input_range)
     driver.range_select(1, input_range)
 
-    if input_range == 0:
-        input_span = 2.048 # Vpp
-    else:
-        input_span = 8.192 # Vpp
-
+    input_span = 2.048 if input_range == 0 else 8.192
     adc_channel = 0
     driver.select_adc_channel(adc_channel)
 
@@ -43,7 +39,9 @@ if __name__=="__main__":
     chirp = (fmax - fmin) / (t_dac[-1] - t_dac[0])
     # chirp = 0.0
 
-    print("Set DAC waveform (chirp between {} and {} kHz)".format(1E-3 * fmin, 1E-3 * fmax))
+    print(
+        f"Set DAC waveform (chirp between {0.001 * fmin} and {0.001 * fmax} kHz)"
+    )
     driver.dac = 0.9 * np.cos(2.0 * np.pi * (fmin + chirp * t_dac) * t_dac)
     driver.set_dac()
 
@@ -54,15 +52,15 @@ if __name__=="__main__":
     fs_adc = 15E6
     adc = np.zeros(driver.n)
 
-    print("Get ADC{} data ({} points)".format(adc_channel, driver.n))
+    print(f"Get ADC{adc_channel} data ({driver.n} points)")
     driver.start_dma()
     driver.get_adc()
     driver.stop_dma()
 
     n_pts = 500000
     t_adc = np.arange(n_pts) / fs_adc
-    print("Plot first {} points".format(n_pts))
-    plt.plot(1E3 * t_adc, driver.adc[0:n_pts] * input_span / 2**18)
+    print(f"Plot first {n_pts} points")
+    plt.plot(1E3 * t_adc, driver.adc[:n_pts] * input_span / 2**18)
     plt.ylim((-input_span / 2.0, +input_span / 2.0))
     plt.xlabel('TIME (ms)')
     plt.ylabel('ADC SIGNAL (V)')

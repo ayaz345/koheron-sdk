@@ -24,10 +24,7 @@ def is_file_in_zip(zip_filename, target_filename):
     zip_files_stdout = subprocess.Popen(["/usr/bin/unzip", "-l", zip_filename], stdout=subprocess.PIPE)
     zip_files = zip_files_stdout.stdout.read()
 
-    if target_filename in zip_files:
-        return True
-    else:
-        return False
+    return target_filename in zip_files
 
 def read_file_in_zip(zip_filename, target_filename):
 
@@ -37,9 +34,7 @@ def read_file_in_zip(zip_filename, target_filename):
     """
 
     target_stdout = subprocess.Popen(["/usr/bin/unzip", "-c", zip_filename, target_filename], stdout=subprocess.PIPE)
-    target_file_content = target_stdout.stdout.read().splitlines()[2]
-
-    return target_file_content
+    return target_stdout.stdout.read().splitlines()[2]
 
 class KoheronApp(Flask):
 
@@ -54,9 +49,7 @@ class KoheronApp(Flask):
 
     def get_instrument_dict(self, instrument_filename, is_default, version_filename):
 
-        instrument = {}
-        instrument["name"] = get_name_from_zipfilename(instrument_filename)
-
+        instrument = {"name": get_name_from_zipfilename(instrument_filename)}
         version = "0.0.0"
 
         if (is_file_in_zip(instrument_filename, version_filename)):
@@ -72,10 +65,7 @@ class KoheronApp(Flask):
         with open(os.path.join(instruments_dirname, default_filename), 'r') as f:
             default_instrument_filename = os.path.join(instruments_dirname, f.read().rstrip('\n'))
 
-        if instrument_filename == default_instrument_filename:
-            return True
-        else:
-            return False
+        return instrument_filename == default_instrument_filename
 
     def init_instruments(self, instruments_dirname):
 
@@ -102,7 +92,7 @@ class KoheronApp(Flask):
             print('Instrument zip file not found.\nNo installation done.')
             return
         name = get_name_from_zipfilename(instrument_filename)
-        print('Installing instrument ' + name)
+        print(f'Installing instrument {name}')
         subprocess.call(['/bin/bash', 'app/install_instrument.sh', name, live_instrument_dirname])
 
         self.live_instrument = instrument_dict
@@ -117,9 +107,9 @@ app = KoheronApp(__name__)
 
 @app.route('/api/instruments', methods=['GET'])
 def get_instruments_status():
-    instruments_status_list = []
-    for instrument in app.instruments_list:
-        instruments_status_list.append(instrument['name'])
+    instruments_status_list = [
+        instrument['name'] for instrument in app.instruments_list
+    ]
     instrument_status_live = app.live_instrument['name']
     return jsonify({'instruments': instruments_status_list, 'live_instrument': instrument_status_live })
 
@@ -129,20 +119,20 @@ def get_instruments_details():
 
 @app.route('/api/instruments/run/<name>', methods=['GET'])
 def run_instrument(name):
-    zip_filename = '{}.zip'.format(name)
+    zip_filename = f'{name}.zip'
     filename = os.path.join(app.instruments_dirname, secure_filename(zip_filename))
     is_default = app.is_default_instrument(os.path.join(app.instruments_dirname, secure_filename(filename)), app.instruments_dirname, app.default_filename)
     instrument_dict = app.get_instrument_dict(filename, is_default, app.version_filename)
     status = app.run_instrument(filename, app.live_instrument_dirname, instrument_dict)
     if status == 'success':
-        response = 'Instrument %s successfully installed' % zip_filename
+        response = f'Instrument {zip_filename} successfully installed'
     else:
-        response = 'Failed to install instrument %s' % zip_filename
+        response = f'Failed to install instrument {zip_filename}'
     return make_response(response)
 
 @app.route('/api/instruments/delete/<name>', methods=['GET'])
 def delete_instrument(name):
-    zip_filename = secure_filename('{}.zip'.format(name))
+    zip_filename = secure_filename(f'{name}.zip')
 
     instrument_filename = os.path.join(app.instruments_dirname, zip_filename)
     if os.path.exists(instrument_filename):
@@ -153,13 +143,10 @@ def delete_instrument(name):
         if instrument["name"] == name:
 
             if instrument["is_default"]:
-
                 return make_response('Default instrument cannot be removed')
 
-            else:
-
-                app.instruments_list.remove(instrument)
-                return make_response('Instrument ' + zip_filename + ' removed.')
+            app.instruments_list.remove(instrument)
+            return make_response(f'Instrument {zip_filename} removed.')
 
 @app.route('/api/instruments/upload', methods=['POST'])
 def upload_instrument():
@@ -189,5 +176,5 @@ def upload_instrument():
 
                 app.instruments_list.append(instrument)
 
-            return make_response('Instrument ' + filename + ' uploaded.')
+            return make_response(f'Instrument {filename} uploaded.')
     return make_response('Instrument upload failed.')

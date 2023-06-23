@@ -23,9 +23,7 @@ class KoheronClient:
 
         for driver in self.commands:
             self.drivers_idx[driver['class']] = driver['id']
-            cmds_idx = {}
-            for cmd in driver['functions']:
-                cmds_idx[cmd['name']] = cmd['id']
+            cmds_idx = {cmd['name']: cmd['id'] for cmd in driver['functions']}
             self.cmds_idx_list[driver['id']] = cmds_idx
 
     def get_ids(self, driver_name, command_name):

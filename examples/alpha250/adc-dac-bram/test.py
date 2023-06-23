@@ -15,8 +15,8 @@ host = os.getenv('HOST', '192.168.1.42')
 client = connect(host, 'adc-dac-bram', restart=True)
 driver = AdcDacBram(client)
 
-print('DAC size = {}'.format(driver.dac_size))
-print('ADC size = {}'.format(driver.adc_size))
+print(f'DAC size = {driver.dac_size}')
+print(f'ADC size = {driver.adc_size}')
 
 clk_200MHz = {'idx': 0, 'fs': 200E6}
 clk_250MHz = {'idx': 1, 'fs': 250E6}

@@ -29,11 +29,7 @@ input_range = 0
 driver.range_select(0, input_range)
 driver.range_select(1, input_range)
 
-if input_range == 0:
-    input_span = 2.048 # Vpp
-else:
-    input_span = 8.192 # Vpp
-
+input_span = 2.048 if input_range == 0 else 8.192
 # -------------------------------------------------------------------------------
 # Set modulation on DAC
 # -------------------------------------------------------------------------------
@@ -45,7 +41,7 @@ t_dac = np.arange(ndac) / fs_dac
 f_dac = fs / 50
 f_dac = np.round(f_dac / fs_dac * ndac) * fs_dac / ndac
 f_mod = f_dac / (fs_dac / fs)
-print("fmod = {} kHz".format(f_mod / 1E3))
+print(f"fmod = {f_mod / 1000.0} kHz")
 driver.dac[0, :] = amp_mod * np.sin(2.0 * np.pi * f_dac * t_dac)
 driver.dac[1, :] = amp_mod * np.sin(2.0 * np.pi * f_dac * t_dac)
 driver.set_dac()
@@ -63,7 +59,7 @@ win = np.ones(n)
 driver.get_adc(0)
 driver.get_adc(1)
 
-for i in range(n_avg):
+for _ in range(n_avg):
     for channel in range(2):
         driver.get_adc(channel)
         data = driver.adc[channel,:]

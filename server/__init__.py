@@ -22,24 +22,20 @@ def get_driver(path, driver_id=0):
 
 def get_driver_id(drivers_list, driver_path):
     drivers_ids ={}
-    driver_id = 2
-    for path in drivers_list or []:
+    for driver_id, path in enumerate(drivers_list or [], start=2):
         assert(path.endswith('.hpp') or path.endswith('.h'))
         dir1, file1 = os.path.split(path)
         dir2, file2 = os.path.split(driver_path)
         if file1 == file2:
                 return driver_id
-        driver_id +=1
     return None
 
 def get_drivers(drivers_list):
     drivers = [] # List of generated drivers
     obj_files = []  # Object file names
-    driver_id = 2
-    for path in drivers_list or []:
+    for driver_id, path in enumerate(drivers_list or [], start=2):
         assert(path.endswith('.hpp') or path.endswith('.h'))
         driver = get_driver(path, driver_id)
-        driver_id +=1
         drivers.append(driver)
     return drivers
 
@@ -52,7 +48,7 @@ class Driver:
         self.operations = dev['operations']
         self.tag = dev['tag']
         self.name = dev['name']
-        self.class_name = 'InTerface' + self.tag.capitalize()
+        self.class_name = f'InTerface{self.tag.capitalize()}'
         self.objects = dev['objects']
         self.includes = dev['includes']
         self.interface_name = 'interface_' + os.path.basename(self.includes[0]).split('.')[0]
@@ -69,16 +65,22 @@ def get_json(drivers):
         ]
     }]
 
-    for driver in drivers:
-        data.append({
+    data.extend(
+        {
             'class': driver.name,
             'id': driver.id,
             'functions': [
-                {'name': op['name'], 'id': op['id'], 'ret_type': format_ret_type(driver.name, op),'args': op.get('args_client',[])}
+                {
+                    'name': op['name'],
+                    'id': op['id'],
+                    'ret_type': format_ret_type(driver.name, op),
+                    'args': op.get('args_client', []),
+                }
                 for op in driver.operations
-            ]
-        })
-
+            ],
+        }
+        for driver in drivers
+    )
     return json.dumps(data, separators=(',', ':')).replace('"', '\\"').replace('\\\\','')
 
 def get_template(filename):
@@ -111,7 +113,11 @@ def render_driver(driver, output_filename_hpp):
     assert(output_filename_split[1] == '.hpp')
     for extension in ['.cpp', '.hpp']:
         with open(output_filename_split[0] + extension, 'w') as output:
-            output.write(get_template('interface_driver' + extension).render(driver=driver))
+            output.write(
+                get_template(f'interface_driver{extension}').render(
+                    driver=driver
+                )
+            )
 
 # -----------------------------------------------------------------------------
 # Parse driver C++ header
@@ -119,14 +125,13 @@ def render_driver(driver, output_filename_hpp):
 
 def parse_header(hppfile):
     cpp_header = CppHeaderParser.CppHeader(hppfile)
-    drivers = []
-    for classname in cpp_header.classes:
-        drivers.append(parse_driver_header(cpp_header.classes[classname], hppfile))
-    return drivers
+    return [
+        parse_driver_header(cpp_header.classes[classname], hppfile)
+        for classname in cpp_header.classes
+    ]
 
 def parse_driver_header(_class, hppfile):
-    driver = {}
-    driver['name'] = _class['name']
+    driver = {'name': _class['name']}
     driver['tag'] = '_'.join(re.findall('[A-Z][^A-Z]*', driver['name'])).upper()
     driver['includes'] = [hppfile]
     driver['objects'] = [{
@@ -138,15 +143,17 @@ def parse_driver_header(_class, hppfile):
     op_id = 0
     for method in _class['methods']['public']:
         # We eliminate constructor, destructor and templates
-        if (not (method['name'] in [s + _class['name'] for s in ['','~']])) and not method['template']:
+        if (
+            method['name'] not in [s + _class['name'] for s in ['', '~']]
+            and not method['template']
+        ):
             driver['operations'].append(parse_header_operation(driver['name'], method))
             driver['operations'][-1]['id'] = op_id
             op_id += 1
     return driver
 
 def parse_header_operation(driver_name, method):
-    operation = {}
-    operation['tag'] = method['name'].upper()
+    operation = {'tag': method['name'].upper()}
     operation['name'] = method['name']
     operation['ret_type'] = method['rtnType']
 
@@ -156,10 +163,7 @@ def parse_header_operation(driver_name, method):
         operation['arguments'] = [] # Use for code generation
         operation['args_client'] = [] # Send to client
         for param in method['parameters']:
-            arg = {}
-            arg['name'] = str(param['name'])
-            arg['type'] = param['type'].strip()
-
+            arg = {'name': str(param['name']), 'type': param['type'].strip()}
             if arg['type'][-1:] == '&': # Argument passed by reference
                 arg['by_reference'] = True
                 arg['type'] = arg['type'][:-2].strip()
@@ -180,27 +184,29 @@ FORBIDDEN_INTS = ['short', 'int', 'unsigned', 'long', 'unsigned short', 'short u
 
 def check_type(_type, driver_name, opname):
     if _type in FORBIDDEN_INTS:
-        raise ValueError('[{}::{}] Invalid type "{}": Only integers with exact width (e.g. uint32_t) are supported (http://en.cppreference.com/w/cpp/header/cstdint).'.format(driver_name, opname, _type))
+        raise ValueError(
+            f'[{driver_name}::{opname}] Invalid type "{_type}": Only integers with exact width (e.g. uint32_t) are supported (http://en.cppreference.com/w/cpp/header/cstdint).'
+        )
 
 def format_type(_type):
-    if is_std_array(_type):
-        templates = _type.split('<')[1].split('>')[0].split(',')
-        return 'std::array<{}, " << {} << ">'.format(templates[0], templates[1])
-    else:
+    if not is_std_array(_type):
         return _type
+    templates = _type.split('<')[1].split('>')[0].split(',')
+    return f'std::array<{templates[0]}, " << {templates[1]} << ">'
 
 def get_exact_ret_type(classname, operation):
     if 'auto' in operation['ret_type'] or is_std_array(operation['ret_type']):
-        decl_arg_list = []
-        for arg in operation.get('arguments', []):
-            decl_arg_list.append('std::declval<{}>()'.format(arg['type']))
-        return 'decltype(std::declval<{}>().{}({}))'.format(classname, operation['name'], ' ,'.join(decl_arg_list))
+        decl_arg_list = [
+            f"std::declval<{arg['type']}>()"
+            for arg in operation.get('arguments', [])
+        ]
+        return f"decltype(std::declval<{classname}>().{operation['name']}({' ,'.join(decl_arg_list)}))"
     else:
         return operation['ret_type']
 
 def format_ret_type(classname, operation):
     if 'auto' in operation['ret_type'] or is_std_array(operation['ret_type']):
-        return '" << get_type_str<{}>() << "'.format(get_exact_ret_type(classname, operation))
+        return f'" << get_type_str<{get_exact_ret_type(classname, operation)}>() << "'
     else:
         return operation['ret_type']
 
@@ -210,16 +216,16 @@ def format_ret_type(classname, operation):
 # -----------------------------------------------------------------------------
 
 def cmd_calls(driver, driver_id):
-    calls = {}
-    for op in driver['operations']:
-        calls[op['tag']] = generate_call(driver, driver_id, op)
-    return calls
+    return {
+        op['tag']: generate_call(driver, driver_id, op)
+        for op in driver['operations']
+    }
 
 def generate_call(driver, driver_id, operation):
     def build_func_call(driver, operation):
         call = driver['objects'][0]['name'] + '.' + operation['name'] + '('
         call += ', '.join('args_' + operation['name'] + '.' + arg['name'] for arg in operation.get('arguments', []))
-        return call + ')'
+        return f'{call})'
 
     lines = []
     if operation['ret_type'] == 'void':
@@ -249,18 +255,39 @@ def parser_generator(driver, operation):
         if pack['family'] == 'scalar':
             lines.append('\n    auto args_tuple' + str(idx)  + ' = cmd.session->deserialize<')
             print_type_list_pack(lines, pack)
-            lines.append('>(cmd);\n')
-            lines.append('    if (std::get<0>(args_tuple' + str(idx)  + ') < 0) {\n')
-            lines.append('        return -1;\n')
-            lines.append('    }\n')
-
-            for i, arg in enumerate(pack['args']):
-                lines.append('    args_' + operation['name'] + '.' + arg["name"] + ' = ' + 'std::get<' + str(i + 1) + '>(args_tuple' + str(idx) + ');\n');
-
+            lines.extend(
+                (
+                    '>(cmd);\n',
+                    f'    if (std::get<0>(args_tuple{str(idx)}' + ') < 0) {\n',
+                    '        return -1;\n',
+                    '    }\n',
+                )
+            )
+            lines.extend(
+                '    args_'
+                + operation['name']
+                + '.'
+                + arg["name"]
+                + ' = '
+                + 'std::get<'
+                + str(i + 1)
+                + '>(args_tuple'
+                + str(idx)
+                + ');\n'
+                for i, arg in enumerate(pack['args'])
+            )
         elif pack['family'] in ['vector', 'string', 'array']:
-            lines.append('    if (cmd.session->recv(args_' + operation['name'] + '.' + pack['args']['name'] + ', cmd) < 0) {\n')
-            lines.append('        return -1;\n')
-            lines.append('    }\n\n')
+            lines.extend(
+                (
+                    '    if (cmd.session->recv(args_'
+                    + operation['name']
+                    + '.'
+                    + pack['args']['name']
+                    + ', cmd) < 0) {\n',
+                    '        return -1;\n',
+                    '    }\n\n',
+                )
+            )
         else:
             raise ValueError('Unknown argument family')
     return ''.join(lines)
@@ -304,7 +331,7 @@ def build_args_packs(lines, operation):
     packs = []
     args_list = []
     has_vector = False
-    for idx, arg in enumerate(operation["arguments"]):
+    for arg in operation["arguments"]:
         if is_std_array(arg['type']):
             if len(args_list) > 0:
                 packs.append({'family': 'scalar', 'args': args_list})

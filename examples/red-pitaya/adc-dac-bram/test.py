@@ -16,8 +16,8 @@ host = os.getenv('HOST', '192.168.1.43')
 client = connect(host, 'adc-dac-bram', restart=False)
 driver = AdcDacBram(client)
 
-print('DAC size = {}'.format(driver.dac_size))
-print('ADC size = {}'.format(driver.adc_size))
+print(f'DAC size = {driver.dac_size}')
+print(f'ADC size = {driver.adc_size}')
 
 sampling_frequency = 250e6 # Hz
 t = np.arange(driver.dac_size) / sampling_frequency

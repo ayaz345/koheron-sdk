@@ -44,8 +44,7 @@ class Spectrum(object):
 
     @command()
     def get_decimated_data(self, decim_factor, index_low, index_high):
-        decimated_data = self.client.recv_vector(dtype='float32')
-        return decimated_data
+        return self.client.recv_vector(dtype='float32')
 
     @command()
     def get_num_average(self):
